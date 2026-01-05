@@ -14,16 +14,66 @@ class TDC_Genesis_Hooks {
     }
     
     private function __construct() {
+        // Hook into after_setup_theme to ensure we run before Genesis processes hooks
+        add_action('after_setup_theme', array($this, 'setup_genesis_hooks'), 15);
+    }
+    
+    /**
+     * Setup Genesis hooks (runs after Genesis is loaded)
+     */
+    public function setup_genesis_hooks() {
         // Only initialize if Genesis is active
         if (!function_exists('genesis')) {
             return;
         }
         
-        // Override entry meta
+        // Remove default Genesis post info and replace with our custom version
+        remove_action('genesis_entry_header', 'genesis_post_info', 12);
+        add_action('genesis_entry_header', array($this, 'custom_entry_header'), 12);
+        
+        // Override entry meta filter as backup
         add_filter('genesis_post_info', array($this, 'custom_post_info'), 10, 1);
         
-        // Add contributor panels after content
+        // Add contributor panels after entry content (before related posts and footer)
         add_action('genesis_after_entry_content', array($this, 'render_contributor_panels'), 10);
+    }
+    
+    /**
+     * Custom entry header with contributor byline
+     */
+    public function custom_entry_header() {
+        // Only modify single post pages
+        if (!is_singular('post')) {
+            genesis_post_info();
+            return;
+        }
+        
+        // Get contributors
+        $contributor_ids = get_field('td_contributors');
+        
+        // Build the entry meta HTML
+        $date = '<time class="entry-time">' . get_the_date() . '</time>';
+        
+        // If no contributors, show date only
+        if (empty($contributor_ids)) {
+            echo '<p class="entry-meta">' . $date . '</p>';
+            return;
+        }
+        
+        // Build contributor byline
+        $snapshots = TDC_Snapshots::get_snapshots(get_the_ID());
+        $names_html = array();
+        
+        foreach ($contributor_ids as $contributor_id) {
+            $snapshot = tdc_get_snapshot_by_id($snapshots, $contributor_id);
+            $names_html[] = tdc_get_contributor_name_html($contributor_id, $snapshot);
+        }
+        
+        // Format with Oxford comma
+        $byline = $this->format_byline_html($names_html);
+        
+        // Output custom format: Date • By Contributors
+        echo '<p class="entry-meta">' . $date . ' <span class="tdc-separator">•</span> By ' . $byline . '</p>';
     }
     
     /**

@@ -50,7 +50,13 @@ if (empty($contributor_ids)) {
         <div class="tdc-panel-inner">
             <?php if ($thumbnail_id) : ?>
                 <div class="tdc-panel-thumbnail">
-                    <?php echo wp_get_attachment_image($thumbnail_id, 'thumbnail', false, array('class' => 'tdc-contributor-image')); ?>
+                    <?php if ($url) : ?>
+                        <a href="<?php echo esc_url($url); ?>" aria-label="<?php echo esc_attr('View ' . $name . ' profile'); ?>">
+                            <?php echo wp_get_attachment_image($thumbnail_id, 'thumbnail', false, array('class' => 'tdc-contributor-image')); ?>
+                        </a>
+                    <?php else : ?>
+                        <?php echo wp_get_attachment_image($thumbnail_id, 'thumbnail', false, array('class' => 'tdc-contributor-image')); ?>
+                    <?php endif; ?>
                 </div>
             <?php endif; ?>
             

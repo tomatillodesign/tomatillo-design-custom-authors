@@ -37,8 +37,9 @@ spl_autoload_register(function ($class) {
         return;
     }
     
-    $relative_class = substr($class, $len);
-    $file = $base_dir . 'class-' . strtolower(str_replace('_', '-', $relative_class)) . '.php';
+    // Convert class name to file name (keep tdc- prefix)
+    // TDC_CPT becomes class-tdc-cpt.php
+    $file = $base_dir . 'class-' . strtolower(str_replace('_', '-', $class)) . '.php';
     
     if (file_exists($file)) {
         require $file;
@@ -67,7 +68,19 @@ class Tomatillo_Design_Custom_Authors {
     }
     
     private function init_hooks() {
+        // Initialize Genesis hooks early (needs to run before genesis_setup)
+        add_action('after_setup_theme', array($this, 'init_genesis_early'), 14);
+        
+        // Initialize everything else on plugins_loaded
         add_action('plugins_loaded', array($this, 'init'));
+    }
+    
+    /**
+     * Initialize Genesis hooks early (before Genesis sets up its hooks)
+     */
+    public function init_genesis_early() {
+        // Initialize Genesis hooks component early
+        TDC_Genesis_Hooks::get_instance();
     }
     
     public function init() {
@@ -76,11 +89,10 @@ class Tomatillo_Design_Custom_Authors {
             return;
         }
         
-        // Initialize components
+        // Initialize components (Genesis hooks already initialized early)
         TDC_CPT::get_instance();
         TDC_ACF::get_instance();
         TDC_Snapshots::get_instance();
-        TDC_Genesis_Hooks::get_instance();
         TDC_Templates::get_instance();
         TDC_Admin_Columns::get_instance();
         TDC_Admin_Filters::get_instance();
@@ -98,8 +110,29 @@ class Tomatillo_Design_Custom_Authors {
             $missing[] = 'Advanced Custom Fields Pro';
         }
         
-        // Check for Genesis
-        if (!function_exists('genesis')) {
+        // Check for Genesis Framework
+        // Use multiple checks since genesis() function may not be loaded yet at plugins_loaded
+        $genesis_active = false;
+        
+        if (function_exists('genesis')) {
+            $genesis_active = true;
+        } elseif (defined('PARENT_THEME_NAME') && PARENT_THEME_NAME === 'Genesis') {
+            $genesis_active = true;
+        } elseif (defined('GENESIS_SETTINGS_FIELD') && GENESIS_SETTINGS_FIELD) {
+            $genesis_active = true;
+        } elseif (function_exists('genesis_get_option')) {
+            $genesis_active = true;
+        }
+        
+        if (!$genesis_active) {
+            // Check if Genesis is the parent theme
+            $theme = wp_get_theme();
+            if ($theme->get('Template') === 'genesis' || $theme->get_template() === 'genesis') {
+                $genesis_active = true;
+            }
+        }
+        
+        if (!$genesis_active) {
             $missing[] = 'Genesis Framework';
         }
         
@@ -118,29 +151,47 @@ class Tomatillo_Design_Custom_Authors {
     }
     
     public function enqueue_styles() {
-        // Only load on relevant pages
+        // Load on single posts (for entry header styling), contributor pages, and contributor archives
         if (is_singular('post') || is_post_type_archive('contributor') || is_singular('contributor')) {
-            $should_load = false;
-            
-            if (is_singular('post')) {
-                $contributors = get_field('td_contributors');
-                $should_load = !empty($contributors);
-            } else {
-                $should_load = true;
-            }
-            
-            if ($should_load) {
-                wp_enqueue_style(
-                    'tdc-contributors',
-                    TDC_PLUGIN_URL . 'assets/css/contributors.css',
-                    array(),
-                    TDC_VERSION
-                );
-            }
+            wp_enqueue_style(
+                'tdc-contributors',
+                TDC_PLUGIN_URL . 'assets/css/contributors.css',
+                array(),
+                TDC_VERSION
+            );
         }
     }
 }
 
+/**
+ * Plugin activation hook
+ * Registers the CPT and flushes permalinks
+ */
+function tdc_activate_plugin() {
+    // Register contributor CPT (duplicate registration for activation only)
+    register_post_type('contributor', array(
+        'public' => true,
+        'has_archive' => true,
+        'rewrite' => array(
+            'slug' => 'contributors',
+            'with_front' => false,
+        ),
+    ));
+    
+    // Flush rewrite rules so /contributors/ URLs work immediately
+    flush_rewrite_rules();
+}
+register_activation_hook(__FILE__, 'tdc_activate_plugin');
+
+/**
+ * Plugin deactivation hook
+ * Flushes permalinks to clean up rewrite rules
+ */
+function tdc_deactivate_plugin() {
+    // Flush rewrite rules to remove contributor URLs
+    flush_rewrite_rules();
+}
+register_deactivation_hook(__FILE__, 'tdc_deactivate_plugin');
+
 // Initialize plugin
 Tomatillo_Design_Custom_Authors::get_instance();
-

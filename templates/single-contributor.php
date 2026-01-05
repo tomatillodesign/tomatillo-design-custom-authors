@@ -7,6 +7,9 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+// Remove Genesis featured image output (we'll handle it in our template)
+remove_action('genesis_entry_content', 'genesis_do_post_image', 8);
+
 // Start Genesis
 remove_action('genesis_loop', 'genesis_do_loop');
 add_action('genesis_loop', 'tdc_contributor_single_loop');
