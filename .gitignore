@@ -2,6 +2,12 @@
 /vendor/
 composer.lock
 
+# Testing
+.phpunit.result.cache
+phpunit.xml
+composer.json
+/tests/
+
 # IDE
 .vscode/
 .idea/
@@ -15,7 +21,4 @@ Thumbs.db
 # Node (if added later)
 node_modules/
 package-lock.json
-
-# Testing
-.phpunit.result.cache
 
