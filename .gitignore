@@ -1,0 +1,21 @@
+# Composer
+/vendor/
+composer.lock
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (if added later)
+node_modules/
+package-lock.json
+
+# Testing
+.phpunit.result.cache
+

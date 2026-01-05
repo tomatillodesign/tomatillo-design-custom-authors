@@ -1,0 +1,22 @@
+{
+  "name": "tomatillo-design/custom-authors",
+  "description": "Custom contributor system for WordPress posts with Genesis Framework integration",
+  "type": "wordpress-plugin",
+  "require": {
+    "php": ">=7.4"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^9.5"
+  },
+  "autoload": {
+    "classmap": [
+      "includes/"
+    ]
+  },
+  "autoload-dev": {
+    "classmap": [
+      "tests/"
+    ]
+  }
+}
+
